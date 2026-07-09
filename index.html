@@ -69,6 +69,12 @@
   .fsrow button{width:40px; height:34px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:.85rem; cursor:pointer; font-family:inherit}
   .fsrow button:active{background:var(--card2)}
   .fsrow button.fsmid{font-size:1rem}
+  .setrow{display:flex; align-items:center; gap:12px; margin-top:16px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:13px 15px}
+  .setrow div{flex:1} .setrow b{display:block; font-size:.92rem; font-weight:700} .setrow small{color:var(--mute); font-size:.75rem}
+  .toggle{flex:none; width:50px; height:29px; border-radius:20px; border:1px solid var(--line); background:var(--bg2); position:relative; cursor:pointer; transition:background .18s}
+  .toggle i{position:absolute; top:3px; left:3px; width:21px; height:21px; border-radius:50%; background:var(--dim); transition:.18s}
+  .toggle.on{background:var(--accent); border-color:var(--accent)}
+  .toggle.on i{left:24px; background:#0F111A}
   .statactions{display:flex; gap:10px; flex-wrap:wrap}
   .statactions button{flex:1; min-width:45%; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:13px; padding:13px; font-size:.9rem; font-weight:700; cursor:pointer; font-family:inherit}
   .statactions button:active{background:var(--card2)}
@@ -236,6 +242,11 @@
       </button>
     </div>
 
+    <div class="setrow">
+      <div><b>정답 위치 섞기</b><small>켜면 풀 때마다 보기 순서가 랜덤으로 바뀌어요</small></div>
+      <button id="shufToggle" class="toggle" onclick="toggleShuf()" aria-label="정답 위치 섞기"><i></i></button>
+    </div>
+
     <div class="fsrow">글자 크기
       <button onclick="setFS(-1)">가﹣</button><button onclick="setFS(0)" class="fsmid">가</button><button onclick="setFS(1)">가﹢</button>
     </div>
@@ -342,13 +353,13 @@ let SAVEDSESS=null;
 function persistSess(){
   if(!SESS||SESS.transient)return;
   const acc=Math.floor((Date.now()-SESS.startedAt)/1000);
-  SAVEDSESS={mode:SESS.mode,label:SESS.label,ids:SESS.ids,i:SESS.i,picks:SESS.picks,showFeedback:SESS.showFeedback,timer:SESS.timer,acc};
+  SAVEDSESS={mode:SESS.mode,label:SESS.label,ids:SESS.ids,i:SESS.i,picks:SESS.picks,showFeedback:SESS.showFeedback,timer:SESS.timer,acc,perms:SESS.perms||{}};
   store.set('aipd_sess',SAVEDSESS);
 }
 function clearSess(){SAVEDSESS=null;store.set('aipd_sess',null);}
 function resumeSess(){
   const s=SAVEDSESS;if(!s||!s.ids||!s.ids.length)return;
-  SESS={mode:s.mode,label:s.label,ids:s.ids,i:Math.min(s.i||0,s.ids.length-1),picks:s.picks||{},showFeedback:s.showFeedback,timer:s.timer,startedAt:Date.now()-(s.acc||0)*1000};
+  SESS={mode:s.mode,label:s.label,ids:s.ids,i:Math.min(s.i||0,s.ids.length-1),picks:s.picks||{},showFeedback:s.showFeedback,timer:s.timer,startedAt:Date.now()-(s.acc||0)*1000,perms:s.perms||{}};
   $('pgLabel').textContent=s.label;$('timer').style.display=s.timer?'block':'none';
   if(s.timer)startTimer();else stopTimer();
   go('quiz');renderQ();
@@ -361,6 +372,18 @@ function applyFS(){
   document.querySelectorAll('.fsrow button').forEach((b,i)=>b.style.borderColor=(i===FS+1)?'var(--accent)':'var(--line)');
 }
 function setFS(v){FS=v;store.set('aipd_fs',v);applyFS();}
+
+/* shuffle answer positions */
+let SHUF=false;
+function applyShuf(){const t=$('shufToggle');if(t)t.classList.toggle('on',SHUF);}
+function toggleShuf(){SHUF=!SHUF;store.set('aipd_shuf',SHUF);applyShuf();toast(SHUF?'정답 위치 섞기 ON':'정답 위치 섞기 OFF');}
+function getPerm(q){
+  if(!SESS.perms)SESS.perms={};
+  if(SESS.perms[q.id])return SESS.perms[q.id];
+  let p=q.options.map((_,i)=>i);
+  if(SHUF)p=shuffle(p);
+  SESS.perms[q.id]=p;return p;
+}
 
 let SESS=null;
 const $=id=>document.getElementById(id);
@@ -440,19 +463,22 @@ function renderQ(){
   $('qChip').textContent=q.topic;$('qNum').textContent='Q'+q.id;$('qText').textContent=q.q;
   const st=$('qStar'),on=ST.stars.includes(q.id);st.textContent=on?'★':'☆';st.classList.toggle('on',on);
   const picked=SESS.picks[q.id];const reveal=SESS.showFeedback&&picked!=null;
+  const perm=getPerm(q);
   const wrap=$('qOpts');wrap.innerHTML='';
-  q.options.forEach((opt,idx)=>{
+  perm.forEach((orig,dpos)=>{
+    const opt=q.options[orig];
     const b=document.createElement('button');b.className='opt';
-    if(reveal){b.disabled=true;if(idx===q.answer)b.classList.add('correct');else if(idx===picked)b.classList.add('wrong');}
-    else if(picked===idx)b.classList.add('sel');
-    b.innerHTML=`<span class="k">${K[idx]}</span><span>${opt}</span><span class="mark">${idx===q.answer?'✓':(reveal&&idx===picked?'✕':'')}</span>`;
-    b.onclick=()=>pick(idx);wrap.appendChild(b);
+    if(reveal){b.disabled=true;if(orig===q.answer)b.classList.add('correct');else if(orig===picked)b.classList.add('wrong');}
+    else if(picked===orig)b.classList.add('sel');
+    b.innerHTML=`<span class="k">${K[dpos]}</span><span>${esc(opt)}</span><span class="mark">${orig===q.answer?'✓':(reveal&&orig===picked?'✕':'')}</span>`;
+    b.onclick=()=>pick(orig);wrap.appendChild(b);
   });
   const ex=$('qExplain');
   if(reveal){
     const ok=picked===q.answer;ex.className='explain on '+(ok?'right':'rong');
     $('exHead').textContent=ok?'✓ 정답입니다':'✕ 오답입니다';
-    $('exBody').innerHTML='<span class="ans">정답: <em>'+K[q.answer]+' '+esc(q.options[q.answer])+'</em></span>'
+    const dispAns=perm.indexOf(q.answer);
+    $('exBody').innerHTML='<span class="ans">정답: <em>'+K[dispAns]+' '+esc(q.options[q.answer])+'</em></span>'
       +(q.chapter?'<span class="src">📘 '+esc(q.chapter)+'</span>':'')
       +'<div class="exbody">'+esc(q.explain).replace(/\n/g,'<br>')+'</div>';
     if(q.note){$('exNote').style.display='flex';$('exNoteTx').textContent=q.note;}else $('exNote').style.display='none';
@@ -537,6 +563,7 @@ async function resetAll(){if(!confirm('모든 학습 기록·오답·즐겨찾�
 (async function(){
   await loadState();
   const fs=await store.get('aipd_fs');if(typeof fs==='number')FS=fs;applyFS();
+  const sh=await store.get('aipd_shuf');SHUF=!!sh;applyShuf();
   SAVEDSESS=await store.get('aipd_sess');
   renderHome();
 })();
