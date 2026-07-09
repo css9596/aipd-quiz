@@ -62,6 +62,26 @@
 
   .footnote{margin-top:auto; padding-top:20px; color:var(--dim); font-size:.74rem; text-align:center; line-height:1.6}
   .footnote button{background:none;border:none;color:var(--accent2);font:inherit;cursor:pointer;text-decoration:underline;padding:0}
+  .tile.resume{border-color:var(--ok); background:linear-gradient(120deg,var(--okDim),var(--card))}
+  .tile.resume .ic{background:var(--ok); color:#08130E}
+  .tile.stats .ic{background:var(--bg); color:var(--accent2); border:1px solid var(--line)}
+  .fsrow{display:flex; align-items:center; justify-content:center; gap:8px; margin-top:14px; color:var(--mute); font-size:.8rem}
+  .fsrow button{width:40px; height:34px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:.85rem; cursor:pointer; font-family:inherit}
+  .fsrow button:active{background:var(--card2)}
+  .fsrow button.fsmid{font-size:1rem}
+  .statactions{display:flex; gap:10px; flex-wrap:wrap}
+  .statactions button{flex:1; min-width:45%; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:13px; padding:13px; font-size:.9rem; font-weight:700; cursor:pointer; font-family:inherit}
+  .statactions button:active{background:var(--card2)}
+  .statactions button[disabled]{opacity:.42; pointer-events:none}
+  .srow{display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:13px; padding:12px 14px}
+  .srow.weak{border-color:#5E2A32}
+  .srow .sn{flex:1; min-width:0}
+  .srow .sn b{display:block; font-size:.9rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .srow .sn small{color:var(--mute); font-size:.74rem}
+  .srow .pct{font-weight:800; font-size:1rem; min-width:44px; text-align:right}
+  .srow .pct.g{color:var(--ok)} .srow .pct.y{color:var(--amber)} .srow .pct.r{color:var(--bad)} .srow .pct.n{color:var(--dim)}
+  .sbar{width:70px; flex:none; height:6px; border-radius:20px; background:var(--bg2); overflow:hidden; border:1px solid var(--line)}
+  .sbar i{display:block; height:100%}
 
   /* topic list */
   .topiclist{display:flex; flex-direction:column; gap:10px; overflow-y:auto}
@@ -193,6 +213,9 @@
     </div>
 
     <div class="menu">
+      <button class="tile resume" id="tileResume" onclick="resumeSess()" style="display:none">
+        <div class="ic">⟳</div><div class="tx"><b>이어서 풀기 <span class="badge" id="resumeBadge" style="background:var(--ok);color:#08130E">0</span></b><small id="resumeSub">풀던 회차를 이어서</small></div><div class="arw">›</div>
+      </button>
       <button class="tile primary" onclick="startLearn()">
         <div class="ic">▶</div><div class="tx"><b>학습 모드</b><small>전체 · 한 문제씩 바로 채점 + 해설</small></div><div class="arw">›</div>
       </button>
@@ -200,7 +223,7 @@
         <div class="ic">⏱</div><div class="tx"><b>시험 모드 (CBT)</b><small>랜덤 출제 · 한 번에 채점 · 타이머</small></div><div class="arw">›</div>
       </button>
       <button class="tile topic" onclick="openTopics()">
-        <div class="ic">▤</div><div class="tx"><b>주제별 학습</b><small>9개 영역 중 골라서 집중 학습</small></div><div class="arw">›</div>
+        <div class="ic">▤</div><div class="tx"><b>주제별 학습</b><small>11개 장 중 골라서 집중 학습</small></div><div class="arw">›</div>
       </button>
       <button class="tile review" id="tileReview" onclick="startReview()">
         <div class="ic">✷</div><div class="tx"><b>오답노트 <span class="badge" id="revBadge" style="display:none">0</span></b><small>틀린 문제만 다시 풀기</small></div><div class="arw">›</div>
@@ -208,6 +231,13 @@
       <button class="tile star" id="tileStar" onclick="startStar()">
         <div class="ic">★</div><div class="tx"><b>즐겨찾기 <span class="badge" id="starBadge" style="display:none;background:var(--amber);color:#2A2000">0</span></b><small>별표한 문제 모아보기</small></div><div class="arw">›</div>
       </button>
+      <button class="tile stats" onclick="openStats()">
+        <div class="ic">◔</div><div class="tx"><b>성적 통계</b><small>장별 정답률 · 약점 단원 · 안 푼 문제</small></div><div class="arw">›</div>
+      </button>
+    </div>
+
+    <div class="fsrow">글자 크기
+      <button onclick="setFS(-1)">가﹣</button><button onclick="setFS(0)" class="fsmid">가</button><button onclick="setFS(1)">가﹢</button>
     </div>
 
     <div class="footnote">
@@ -221,6 +251,16 @@
     <div class="bar"><button class="iconbtn" onclick="go('home')">‹</button>
       <div class="progresswrap"><div class="top"><span>주제별 학습</span><span>골라서 시작</span></div></div></div>
     <div class="topiclist" id="topicList"></div>
+  </section>
+
+  <!-- STATS -->
+  <section class="screen" id="stats">
+    <div class="bar"><button class="iconbtn" onclick="go('home')">‹</button>
+      <div class="progresswrap"><div class="top"><span>성적 통계</span><span id="statsOverall"></span></div></div></div>
+    <div class="qscroll">
+      <div id="statsActions" class="statactions"></div>
+      <div class="topiclist" id="statList" style="margin-top:12px"></div>
+    </div>
   </section>
 
   <!-- QUIZ -->
@@ -297,6 +337,31 @@ let ST={done:{},wrong:[],stars:[]};
 async function loadState(){const s=await store.get('aipd_v2');if(s)ST=Object.assign(ST,s);ST.wrong=ST.wrong||[];ST.stars=ST.stars||[];ST.done=ST.done||{};}
 async function saveState(){await store.set('aipd_v2',ST);}
 
+/* resumable session */
+let SAVEDSESS=null;
+function persistSess(){
+  if(!SESS||SESS.transient)return;
+  const acc=Math.floor((Date.now()-SESS.startedAt)/1000);
+  SAVEDSESS={mode:SESS.mode,label:SESS.label,ids:SESS.ids,i:SESS.i,picks:SESS.picks,showFeedback:SESS.showFeedback,timer:SESS.timer,acc};
+  store.set('aipd_sess',SAVEDSESS);
+}
+function clearSess(){SAVEDSESS=null;store.set('aipd_sess',null);}
+function resumeSess(){
+  const s=SAVEDSESS;if(!s||!s.ids||!s.ids.length)return;
+  SESS={mode:s.mode,label:s.label,ids:s.ids,i:Math.min(s.i||0,s.ids.length-1),picks:s.picks||{},showFeedback:s.showFeedback,timer:s.timer,startedAt:Date.now()-(s.acc||0)*1000};
+  $('pgLabel').textContent=s.label;$('timer').style.display=s.timer?'block':'none';
+  if(s.timer)startTimer();else stopTimer();
+  go('quiz');renderQ();
+}
+
+/* font size */
+let FS=0;
+function applyFS(){
+  document.documentElement.style.fontSize=({'-1':15,'0':16,'1':18.5}[FS]||16)+'px';
+  document.querySelectorAll('.fsrow button').forEach((b,i)=>b.style.borderColor=(i===FS+1)?'var(--accent)':'var(--line)');
+}
+function setFS(v){FS=v;store.set('aipd_fs',v);applyFS();}
+
 let SESS=null;
 const $=id=>document.getElementById(id);
 function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');window.scrollTo(0,0);}
@@ -313,6 +378,12 @@ function renderHome(){
   $('tileReview').toggleAttribute('disabled',bad===0);
   const sc=ST.stars.length,sb=$('starBadge');if(sc>0){sb.style.display='inline-block';sb.textContent=sc;}else sb.style.display='none';
   $('tileStar').toggleAttribute('disabled',sc===0);
+  const rt=$('tileResume');
+  if(SAVEDSESS&&SAVEDSESS.ids&&SAVEDSESS.ids.length){
+    rt.style.display='flex';
+    $('resumeBadge').textContent=(SAVEDSESS.i||0)+1;
+    $('resumeSub').textContent=`${SAVEDSESS.label} · ${(SAVEDSESS.i||0)+1}/${SAVEDSESS.ids.length}번 문제부터`;
+  }else rt.style.display='none';
 }
 
 /* TOPICS */
@@ -386,7 +457,7 @@ function renderQ(){
       +'<div class="exbody">'+esc(q.explain).replace(/\n/g,'<br>')+'</div>';
     if(q.note){$('exNote').style.display='flex';$('exNoteTx').textContent=q.note;}else $('exNote').style.display='none';
   }else{ex.className='explain';}
-  renderActions();$('quiz').querySelector('.qscroll').scrollTop=0;
+  renderActions();$('quiz').querySelector('.qscroll').scrollTop=0;persistSess();
 }
 function renderActions(){
   const q=curQ();const picked=SESS.picks[q.id];const last=SESS.i===SESS.ids.length-1;
@@ -411,7 +482,7 @@ function confirmSubmit(){
   SESS.ids.forEach(id=>{const p=SESS.picks[id];if(p!=null)recordAnswer(byId(id),p);});finish();
 }
 function finish(){
-  stopTimer();const ids=SESS.ids;let ok=0,bad=0,skip=0;
+  stopTimer();clearSess();const ids=SESS.ids;let ok=0,bad=0,skip=0;
   ids.forEach(id=>{const q=byId(id);const p=SESS.picks[id];if(p==null)skip++;else if(p===q.answer)ok++;else bad++;});
   const pct=Math.round(ok/ids.length*100);
   $('resMode').textContent=SESS.label;$('resPct').textContent=pct;$('resOk').textContent=ok;$('resBad').textContent=bad;
@@ -427,13 +498,48 @@ function finish(){
   renderHome();go('result');
 }
 function reviewOne(id,picked){
-  const q=byId(id);SESS={mode:'review',label:'문제 다시보기',ids:[id],i:0,picks:{[id]:picked==null?q.answer:picked},showFeedback:true,timer:false,startedAt:Date.now()};
+  const q=byId(id);SESS={mode:'review',label:'문제 다시보기',ids:[id],i:0,picks:{[id]:picked==null?q.answer:picked},showFeedback:true,timer:false,startedAt:Date.now(),transient:true};
   $('pgLabel').textContent='문제 다시보기';$('timer').style.display='none';go('quiz');renderQ();
 }
 function quitQuiz(){stopTimer();renderHome();go('home');}
-async function resetAll(){if(!confirm('모든 학습 기록·오답·즐겨찾기를 지울까요?'))return;ST={done:{},wrong:[],stars:[]};await saveState();renderHome();toast('초기화됐어요');}
 
-(async function(){await loadState();renderHome();})();
+/* STATS */
+function accClass(p){return p>=80?'g':p>=60?'y':'r';}
+function openStats(){
+  const doneIds=Object.keys(ST.done);const ok=doneIds.filter(i=>ST.done[i]).length;const done=doneIds.length;
+  const pct=done?Math.round(ok/done*100):0;
+  $('statsOverall').textContent=done?`${pct}% · ${ok}/${done}`:'미학습';
+  const unans=QUESTIONS.filter(q=>ST.done[q.id]===undefined).map(q=>q.id);
+  const acts=$('statsActions');acts.innerHTML='';
+  const b1=document.createElement('button');b1.textContent=`안 푼 문제 (${unans.length})`;b1.disabled=!unans.length;
+  b1.onclick=()=>beginSession('learn','안 푼 문제',unans,true,false);acts.appendChild(b1);
+  const b2=document.createElement('button');b2.textContent=`오답 복습 (${ST.wrong.length})`;b2.disabled=!ST.wrong.length;
+  b2.onclick=()=>startReview();acts.appendChild(b2);
+  const rows=TOPICS.map(t=>{const ids=QUESTIONS.filter(q=>q.topic===t).map(q=>q.id);
+    const d=ids.filter(i=>ST.done[i]!==undefined).length;const o=ids.filter(i=>ST.done[i]===true).length;
+    return {t,total:ids.length,d,o,p:d?Math.round(o/d*100):-1};});
+  const ans=rows.filter(r=>r.d>0);const weakP=ans.length?Math.min(...ans.map(r=>r.p)):999;
+  const list=$('statList');list.innerHTML='';
+  rows.forEach(r=>{
+    const row=document.createElement('div');row.className='srow'+(r.d>0&&r.p===weakP&&r.p<80?' weak':'');
+    const bw=r.p<0?0:r.p;const bg=r.p<0?'var(--dim)':r.p>=80?'var(--ok)':r.p>=60?'var(--amber)':'var(--bad)';
+    row.innerHTML=`<div class="sn"><b>${esc(r.t)}</b><small>${r.d>0?`${r.o}/${r.d} 정답 · 총 ${r.total}문항`:`미학습 · 총 ${r.total}문항`}</small></div>`
+      +`<div class="sbar"><i style="width:${bw}%;background:${bg}"></i></div>`
+      +`<div class="pct ${r.p<0?'n':accClass(r.p)}">${r.p<0?'–':r.p+'%'}</div>`;
+    row.onclick=()=>{const ids=QUESTIONS.filter(q=>q.topic===r.t).map(q=>q.id);beginSession('topic',r.t,ids,true,false);};
+    list.appendChild(row);
+  });
+  go('stats');
+}
+
+async function resetAll(){if(!confirm('모든 학습 기록·오답·즐겨찾기·이어풀기를 지울까요?'))return;ST={done:{},wrong:[],stars:[]};await saveState();clearSess();renderHome();toast('초기화됐어요');}
+
+(async function(){
+  await loadState();
+  const fs=await store.get('aipd_fs');if(typeof fs==='number')FS=fs;applyFS();
+  SAVEDSESS=await store.get('aipd_sess');
+  renderHome();
+})();
 </script>
 </body>
 </html>
