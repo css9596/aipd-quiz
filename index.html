@@ -62,6 +62,7 @@
 
   .footnote{margin-top:auto; padding-top:20px; color:var(--dim); font-size:.74rem; text-align:center; line-height:1.6}
   .footnote button{background:none;border:none;color:var(--accent2);font:inherit;cursor:pointer;text-decoration:underline;padding:0}
+  .footnote a{color:var(--accent2);text-decoration:underline}
   .tile.resume{border-color:var(--ok); background:linear-gradient(120deg,var(--okDim),var(--card))}
   .tile.resume .ic{background:var(--ok); color:#08130E}
   .tile.stats .ic{background:var(--bg); color:var(--accent2); border:1px solid var(--line)}
@@ -75,6 +76,10 @@
   .toggle i{position:absolute; top:3px; left:3px; width:21px; height:21px; border-radius:50%; background:var(--dim); transition:.18s}
   .toggle.on{background:var(--accent); border-color:var(--accent)}
   .toggle.on i{left:24px; background:#0F111A}
+  .adbox{margin-top:16px; border:1px solid var(--line); border-radius:12px; background:var(--card); padding:10px; text-align:center; overflow:hidden}
+  .adbox .cp-wrap{width:100%; overflow:hidden}
+  .adbox .cp-scale{transform-origin:top left}
+  .adbox .addisc{margin-top:8px; color:var(--dim); font-size:.66rem; line-height:1.5; letter-spacing:.01em}
   .statactions{display:flex; gap:10px; flex-wrap:wrap}
   .statactions button{flex:1; min-width:45%; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:13px; padding:13px; font-size:.9rem; font-weight:700; cursor:pointer; font-family:inherit}
   .statactions button:active{background:var(--card2)}
@@ -251,9 +256,11 @@
       <button onclick="setFS(-1)">가﹣</button><button onclick="setFS(0)" class="fsmid">가</button><button onclick="setFS(1)">가﹢</button>
     </div>
 
+    <div class="adbox" id="adHome" style="display:none"></div>
+
     <div class="footnote">
       교재 기반 정답·해설 수록 (11개 장 · 167문항) · 해설에 개념 정리·출처 포함<br>
-      <button onclick="resetAll()">기록 초기화</button>
+      <button onclick="resetAll()">기록 초기화</button> · <a href="privacy.html">개인정보처리방침</a>
     </div>
   </section>
 
@@ -306,6 +313,7 @@
         <div class="grid2"><div class="stat ok"><b id="resOk">0</b><span>맞힘</span></div><div class="stat bad"><b id="resBad">0</b><span>틀림</span></div></div>
       </div>
       <div class="reslist" id="resList"></div>
+      <div class="adbox" id="adResult" style="display:none"></div>
     </div>
     <div class="actions">
       <button class="btn gray" id="resRetryWrong" onclick="retryWrong()">오답만 다시</button>
@@ -331,6 +339,46 @@ const K=["①","②","③","④","⑤"];
 const byId = id => QUESTIONS.find(q=>q.id===id);
 const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const TOPICS = [...new Set(QUESTIONS.map(q=>q.topic))];
+
+/* ===== 광고: 쿠팡 파트너스 ===== */
+const AD = {
+  trackingCode:"AF3327712",
+  bannerId:"1005245",
+  template:"carousel",
+  width:"680", height:"140"   // 배너 원본 크기 (화면 폭에 맞춰 자동 축소됨)
+};
+let _cpLoaded=false, _cpLoading=false, _cpQueue=[];
+function loadCoupang(cb){
+  if(_cpLoaded){cb();return;}
+  _cpQueue.push(cb);
+  if(_cpLoading)return; _cpLoading=true;
+  const s=document.createElement('script');s.src="https://ads-partners.coupang.com/g.js";
+  s.onload=()=>{_cpLoaded=true;_cpQueue.forEach(f=>f());_cpQueue=[];};
+  document.head.appendChild(s);
+}
+function fitCoupang(){
+  const nw=Number(AD.width)||680, nh=Number(AD.height)||140;
+  document.querySelectorAll('.cp-wrap').forEach(w=>{
+    const inner=w.querySelector('.cp-scale');if(!inner)return;
+    const scale=Math.min(1, w.clientWidth/nw);
+    inner.style.width=nw+'px';inner.style.transform='scale('+scale+')';
+    w.style.height=(nh*scale)+'px';
+  });
+}
+window.addEventListener('resize',fitCoupang);
+function adInit(cid){
+  if(!AD.trackingCode||!AD.bannerId)return;
+  const box=document.getElementById(cid);if(!box||box.dataset.done)return;
+  box.dataset.done="1";box.style.display="block";
+  const hid=cid+"_cp";
+  box.innerHTML='<div class="cp-wrap"><div class="cp-scale"><div id="'+hid+'"></div></div></div>'
+    +'<div class="addisc">이 앱은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</div>';
+  loadCoupang(()=>{
+    try{new PartnersCoupang.G({id:Number(AD.bannerId),template:AD.template,trackingCode:AD.trackingCode,
+      subId:null,width:AD.width,height:AD.height,tsource:"",container:"#"+hid});}catch(e){}
+    [300,900,1800].forEach(t=>setTimeout(fitCoupang,t));
+  });
+}
 
 /* storage: works inside Claude (window.storage) AND standalone in any browser (localStorage), with in-memory fallback */
 const store={mem:{},
@@ -387,7 +435,7 @@ function getPerm(q){
 
 let SESS=null;
 const $=id=>document.getElementById(id);
-function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');window.scrollTo(0,0);}
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');window.scrollTo(0,0);if(id==='home')adInit('adHome');else if(id==='result')adInit('adResult');}
 let toastT;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),1600);}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
