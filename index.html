@@ -257,12 +257,7 @@
     </div>
 
     <div class="adbox" id="adHome">
-      <div class="cp-wrap">
-        <script src="https://ads-partners.coupang.com/g.js"></script>
-        <script>
-          new PartnersCoupang.G({"id":1005245,"template":"carousel","trackingCode":"AF3327712","width":"680","height":"140","tsource":""});
-        </script>
-      </div>
+      <div class="cp-wrap" id="cpHome"></div>
       <div class="addisc">이 앱은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</div>
     </div>
 
@@ -322,12 +317,7 @@
       </div>
       <div class="reslist" id="resList"></div>
       <div class="adbox" id="adResult">
-        <div class="cp-wrap">
-          <script src="https://ads-partners.coupang.com/g.js"></script>
-          <script>
-            new PartnersCoupang.G({"id":1005245,"template":"carousel","trackingCode":"AF3327712","width":"680","height":"140","tsource":""});
-          </script>
-        </div>
+        <div class="cp-wrap" id="cpResult"></div>
         <div class="addisc">이 앱은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</div>
       </div>
     </div>
@@ -356,23 +346,43 @@ const byId = id => QUESTIONS.find(q=>q.id===id);
 const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const TOPICS = [...new Set(QUESTIONS.map(q=>q.topic))];
 
-/* ===== 광고: 쿠팡 파트너스 (공식 코드는 HTML에 인라인으로 삽입) =====
-   g.js는 스크립트가 실행된 위치에 배너를 그리므로, 여기서는 크기만 화면 폭에 맞게 조절한다. */
-const AD_W=680, AD_H=140;
+/* ===== 광고: 쿠팡 파트너스 =====
+   g.js를 먼저 확실히 로드한 뒤에만 배너를 그린다(로드 실패 시 광고 영역을 숨김). */
+const AD = { id:1005245, trackingCode:"AF3327712", template:"carousel", w:680, h:140 };
+function hideAds(){document.querySelectorAll('.adbox').forEach(b=>b.style.display='none');}
 function fitCoupang(){
   document.querySelectorAll('.adbox').forEach(box=>{
-    const el=box.querySelector('iframe, ins, .coupang-banner, div[id^="coupang"]');
-    if(!el)return;
-    const avail=box.clientWidth-20;
-    const scale=Math.min(1, avail/AD_W);
+    const wrap=box.querySelector('.cp-wrap');if(!wrap)return;
+    const el=wrap.firstElementChild;if(!el)return;
+    const scale=Math.min(1,(box.clientWidth-20)/AD.w);
     el.style.transformOrigin='top left';
     el.style.transform='scale('+scale+')';
-    const wrap=box.querySelector('.cp-wrap');
-    if(wrap) wrap.style.height=(AD_H*scale)+'px';
+    wrap.style.height=(AD.h*scale)+'px';
   });
 }
 window.addEventListener('resize',fitCoupang);
-window.addEventListener('load',()=>{[0,500,1500,3000].forEach(t=>setTimeout(fitCoupang,t));});
+function drawAds(){
+  document.querySelectorAll('.cp-wrap').forEach(wrap=>{
+    if(wrap.dataset.done)return; wrap.dataset.done="1";
+    try{
+      new PartnersCoupang.G({id:AD.id,template:AD.template,trackingCode:AD.trackingCode,
+        width:String(AD.w),height:String(AD.h),tsource:"",container:wrap.id});
+    }catch(e){}
+  });
+  [200,800,2000].forEach(t=>setTimeout(fitCoupang,t));
+  // 2.5초 뒤에도 배너가 비어 있으면 광고 영역을 숨긴다
+  setTimeout(()=>{document.querySelectorAll('.adbox').forEach(box=>{
+    const w=box.querySelector('.cp-wrap');
+    if(!w||!w.firstElementChild) box.style.display='none';
+  });},2500);
+}
+function loadAds(){
+  const s=document.createElement('script');
+  s.src="https://ads-partners.coupang.com/g.js"; s.async=true;
+  s.onload=drawAds;
+  s.onerror=hideAds;          // 광고 차단·네트워크 오류 시 빈 영역이 남지 않게
+  document.head.appendChild(s);
+}
 
 /* storage: works inside Claude (window.storage) AND standalone in any browser (localStorage), with in-memory fallback */
 const store={mem:{},
@@ -608,6 +618,7 @@ async function resetAll(){if(!confirm('모든 학습 기록·오답·즐겨찾�
   const sh=await store.get('aipd_shuf');SHUF=!!sh;applyShuf();
   SAVEDSESS=await store.get('aipd_sess');
   renderHome();
+  loadAds();
 })();
 </script>
 </body>
