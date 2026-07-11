@@ -77,8 +77,8 @@
   .toggle.on{background:var(--accent); border-color:var(--accent)}
   .toggle.on i{left:24px; background:#0F111A}
   .adbox{margin-top:16px; border:1px solid var(--line); border-radius:12px; background:var(--card); padding:10px; text-align:center; overflow:hidden}
-  .adbox .cp-wrap{width:100%; overflow:hidden}
-  .adbox .cp-frame{border:0; display:block}
+  .adbox .cp-wrap{width:100%; overflow:hidden; min-height:60px}
+  .adbox iframe{border:0; display:block}
   .adbox .addisc{margin-top:8px; color:var(--dim); font-size:.66rem; line-height:1.5; letter-spacing:.01em}
   .statactions{display:flex; gap:10px; flex-wrap:wrap}
   .statactions button{flex:1; min-width:45%; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:13px; padding:13px; font-size:.9rem; font-weight:700; cursor:pointer; font-family:inherit}
@@ -256,7 +256,15 @@
       <button onclick="setFS(-1)">가﹣</button><button onclick="setFS(0)" class="fsmid">가</button><button onclick="setFS(1)">가﹢</button>
     </div>
 
-    <div class="adbox" id="adHome" style="display:none"></div>
+    <div class="adbox" id="adHome">
+      <div class="cp-wrap">
+        <script src="https://ads-partners.coupang.com/g.js"></script>
+        <script>
+          new PartnersCoupang.G({"id":1005245,"template":"carousel","trackingCode":"AF3327712","width":"680","height":"140","tsource":""});
+        </script>
+      </div>
+      <div class="addisc">이 앱은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</div>
+    </div>
 
     <div class="footnote">
       교재 기반 정답·해설 수록 (11개 장 · 167문항) · 해설에 개념 정리·출처 포함<br>
@@ -313,7 +321,15 @@
         <div class="grid2"><div class="stat ok"><b id="resOk">0</b><span>맞힘</span></div><div class="stat bad"><b id="resBad">0</b><span>틀림</span></div></div>
       </div>
       <div class="reslist" id="resList"></div>
-      <div class="adbox" id="adResult" style="display:none"></div>
+      <div class="adbox" id="adResult">
+        <div class="cp-wrap">
+          <script src="https://ads-partners.coupang.com/g.js"></script>
+          <script>
+            new PartnersCoupang.G({"id":1005245,"template":"carousel","trackingCode":"AF3327712","width":"680","height":"140","tsource":""});
+          </script>
+        </div>
+        <div class="addisc">이 앱은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</div>
+      </div>
     </div>
     <div class="actions">
       <button class="btn gray" id="resRetryWrong" onclick="retryWrong()">오답만 다시</button>
@@ -340,36 +356,23 @@ const byId = id => QUESTIONS.find(q=>q.id===id);
 const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const TOPICS = [...new Set(QUESTIONS.map(q=>q.topic))];
 
-/* ===== 광고: 쿠팡 파트너스 ===== */
-const AD = { trackingCode:"AF3327712", bannerId:"1005245", template:"carousel", width:"680", height:"140" };
+/* ===== 광고: 쿠팡 파트너스 (공식 코드는 HTML에 인라인으로 삽입) =====
+   g.js는 스크립트가 실행된 위치에 배너를 그리므로, 여기서는 크기만 화면 폭에 맞게 조절한다. */
+const AD_W=680, AD_H=140;
 function fitCoupang(){
-  const nw=Number(AD.width)||680, nh=Number(AD.height)||140;
-  document.querySelectorAll('.cp-wrap').forEach(w=>{
-    const f=w.querySelector('.cp-frame');if(!f)return;
-    const scale=Math.min(1, w.clientWidth/nw);
-    f.style.transformOrigin='top left';
-    f.style.transform='scale('+scale+')';
-    w.style.height=(nh*scale)+'px';
+  document.querySelectorAll('.adbox').forEach(box=>{
+    const el=box.querySelector('iframe, ins, .coupang-banner, div[id^="coupang"]');
+    if(!el)return;
+    const avail=box.clientWidth-20;
+    const scale=Math.min(1, avail/AD_W);
+    el.style.transformOrigin='top left';
+    el.style.transform='scale('+scale+')';
+    const wrap=box.querySelector('.cp-wrap');
+    if(wrap) wrap.style.height=(AD_H*scale)+'px';
   });
 }
 window.addEventListener('resize',fitCoupang);
-function adInit(cid){
-  if(!AD.trackingCode||!AD.bannerId)return;
-  const box=document.getElementById(cid);if(!box||box.dataset.done)return;
-  box.dataset.done="1";box.style.display="block";
-  const nw=Number(AD.width), nh=Number(AD.height);
-  const doc='<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank">'
-    +'<style>html,body{margin:0;padding:0;overflow:hidden}</style></head><body>'
-    +'<script src="https://ads-partners.coupang.com/g.js"><\/script>'
-    +'<script>new PartnersCoupang.G({"id":'+Number(AD.bannerId)+',"template":"'+AD.template
-    +'","trackingCode":"'+AD.trackingCode+'","width":"'+AD.width+'","height":"'+AD.height+'","tsource":""});<\/script>'
-    +'</body></html>';
-  box.innerHTML='<div class="cp-wrap"><iframe class="cp-frame" scrolling="no"></iframe></div>'
-    +'<div class="addisc">이 앱은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</div>';
-  const f=box.querySelector('.cp-frame');
-  f.setAttribute('frameborder','0');f.style.width=nw+'px';f.style.height=nh+'px';f.srcdoc=doc;
-  fitCoupang();[300,900,1800].forEach(t=>setTimeout(fitCoupang,t));
-}
+window.addEventListener('load',()=>{[0,500,1500,3000].forEach(t=>setTimeout(fitCoupang,t));});
 
 /* storage: works inside Claude (window.storage) AND standalone in any browser (localStorage), with in-memory fallback */
 const store={mem:{},
@@ -426,7 +429,7 @@ function getPerm(q){
 
 let SESS=null;
 const $=id=>document.getElementById(id);
-function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');window.scrollTo(0,0);if(id==='home')adInit('adHome');else if(id==='result')adInit('adResult');}
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');window.scrollTo(0,0);setTimeout(fitCoupang,50);}
 let toastT;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),1600);}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
