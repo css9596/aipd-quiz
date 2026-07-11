@@ -78,7 +78,7 @@
   .toggle.on i{left:24px; background:#0F111A}
   .adbox{margin-top:16px; border:1px solid var(--line); border-radius:12px; background:var(--card); padding:10px; text-align:center; overflow:hidden}
   .adbox .cp-wrap{width:100%; overflow:hidden}
-  .adbox .cp-scale{transform-origin:top left}
+  .adbox .cp-frame{border:0; display:block}
   .adbox .addisc{margin-top:8px; color:var(--dim); font-size:.66rem; line-height:1.5; letter-spacing:.01em}
   .statactions{display:flex; gap:10px; flex-wrap:wrap}
   .statactions button{flex:1; min-width:45%; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:13px; padding:13px; font-size:.9rem; font-weight:700; cursor:pointer; font-family:inherit}
@@ -341,27 +341,14 @@ const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt
 const TOPICS = [...new Set(QUESTIONS.map(q=>q.topic))];
 
 /* ===== 광고: 쿠팡 파트너스 ===== */
-const AD = {
-  trackingCode:"AF3327712",
-  bannerId:"1005245",
-  template:"carousel",
-  width:"680", height:"140"   // 배너 원본 크기 (화면 폭에 맞춰 자동 축소됨)
-};
-let _cpLoaded=false, _cpLoading=false, _cpQueue=[];
-function loadCoupang(cb){
-  if(_cpLoaded){cb();return;}
-  _cpQueue.push(cb);
-  if(_cpLoading)return; _cpLoading=true;
-  const s=document.createElement('script');s.src="https://ads-partners.coupang.com/g.js";
-  s.onload=()=>{_cpLoaded=true;_cpQueue.forEach(f=>f());_cpQueue=[];};
-  document.head.appendChild(s);
-}
+const AD = { trackingCode:"AF3327712", bannerId:"1005245", template:"carousel", width:"680", height:"140" };
 function fitCoupang(){
   const nw=Number(AD.width)||680, nh=Number(AD.height)||140;
   document.querySelectorAll('.cp-wrap').forEach(w=>{
-    const inner=w.querySelector('.cp-scale');if(!inner)return;
+    const f=w.querySelector('.cp-frame');if(!f)return;
     const scale=Math.min(1, w.clientWidth/nw);
-    inner.style.width=nw+'px';inner.style.transform='scale('+scale+')';
+    f.style.transformOrigin='top left';
+    f.style.transform='scale('+scale+')';
     w.style.height=(nh*scale)+'px';
   });
 }
@@ -370,14 +357,18 @@ function adInit(cid){
   if(!AD.trackingCode||!AD.bannerId)return;
   const box=document.getElementById(cid);if(!box||box.dataset.done)return;
   box.dataset.done="1";box.style.display="block";
-  const hid=cid+"_cp";
-  box.innerHTML='<div class="cp-wrap"><div class="cp-scale"><div id="'+hid+'"></div></div></div>'
+  const nw=Number(AD.width), nh=Number(AD.height);
+  const doc='<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank">'
+    +'<style>html,body{margin:0;padding:0;overflow:hidden}</style></head><body>'
+    +'<script src="https://ads-partners.coupang.com/g.js"><\/script>'
+    +'<script>new PartnersCoupang.G({"id":'+Number(AD.bannerId)+',"template":"'+AD.template
+    +'","trackingCode":"'+AD.trackingCode+'","width":"'+AD.width+'","height":"'+AD.height+'","tsource":""});<\/script>'
+    +'</body></html>';
+  box.innerHTML='<div class="cp-wrap"><iframe class="cp-frame" scrolling="no"></iframe></div>'
     +'<div class="addisc">이 앱은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</div>';
-  loadCoupang(()=>{
-    try{new PartnersCoupang.G({id:Number(AD.bannerId),template:AD.template,trackingCode:AD.trackingCode,
-      subId:null,width:AD.width,height:AD.height,tsource:"",container:"#"+hid});}catch(e){}
-    [300,900,1800].forEach(t=>setTimeout(fitCoupang,t));
-  });
+  const f=box.querySelector('.cp-frame');
+  f.setAttribute('frameborder','0');f.style.width=nw+'px';f.style.height=nh+'px';f.srcdoc=doc;
+  fitCoupang();[300,900,1800].forEach(t=>setTimeout(fitCoupang,t));
 }
 
 /* storage: works inside Claude (window.storage) AND standalone in any browser (localStorage), with in-memory fallback */
